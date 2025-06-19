@@ -1,0 +1,30 @@
+# Ignore compiled object files
+*.o
+*.obj
+
+# Ignore compiled binary files
+*.exe
+*.out
+*.a
+*.so
+*.dll
+
+# Ignore build directories
+/build/
+bin/
+dist/
+
+# Ignore temporary files
+*.tmp
+*.log
+*.swp
+*.bak
+
+# Ignore C++ debugging files
+*.dSYM/
+*.stackdump
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
+*.code-workspace
