@@ -23,6 +23,20 @@ bool matrix_equal(T *A, T *B, int size, double tol = 1e-8)
     return true;
 }
 
+void print_matrix(double *matrix, int M, int N, const string &name)
+{
+    cout << name << " (" << M << "x" << N << "):" << endl;
+    for (int i = 0; i < M; ++i)
+    {
+        for (int j = 0; j < N; ++j)
+        {
+            cout << matrix[i * N + j] << " ";
+        }
+        cout << endl;
+    }
+    cout << "----------------------------------------" << endl;
+}
+
 // 单元测试
 void test_gemm(map<int, function<void(double *, double *, double *, int, int, int)>> &dict)
 {
@@ -49,11 +63,13 @@ void test_gemm(map<int, function<void(double *, double *, double *, int, int, in
         memset(Ctest, 0, M * N * sizeof(double));
         gemm_func(A, B, Ctest, M, N, K);
         if (matrix_equal(Cref, Ctest, M * N))
-        {
+        {   
             cout << "Version " << version << " passed the test." << endl;
         }
         else
-        {
+        {            
+            print_matrix(Cref, M, N, "Cref");
+            print_matrix(Ctest, M, N, "Ctest");
             cout << "Version " << version << " failed the test." << endl;
         }
     }
@@ -124,7 +140,7 @@ int main()
         // {4, cpu_gemm_v2<double, 16, 16>},
         // {5, cpu_gemm_v2_1<double>},
         {6, cpu_gemm_v2_2<double>},
-        {7, cpu_gemm_v3<double>},
+        {7, cpu_gemm_v3<double, 4, 4>},
     };
     test_gemm(cpu_gemm_versions);
     for (const auto &[key, size] : matrix_size)
@@ -142,10 +158,12 @@ int main()
         for (int i = 0; i < M * K; ++i)
         {
             A[i] = static_cast<double>(rand()) / RAND_MAX;
+            // A[i] = 1;
         }
         for (int i = 0; i < K * N; ++i)
         {
             B[i] = static_cast<double>(rand()) / RAND_MAX;
+            // B[i] = 1;
         }
 
         for (const auto &[version, gemm_func] : cpu_gemm_versions)

@@ -21,10 +21,10 @@ namespace block3{
 
             // *** THE FIX IS HERE ***
             // Use the original matrix stride (A_stride_k) to move between rows of A.
-            __m256d a_reg_0 = _mm256_broadcast_sd(&A[0 * A_stride_k + 1]);
-            __m256d a_reg_1 = _mm256_broadcast_sd(&A[1 * A_stride_k + 1]);
-            __m256d a_reg_2 = _mm256_broadcast_sd(&A[2 * A_stride_k + 1]);
-            __m256d a_reg_3 = _mm256_broadcast_sd(&A[3 * A_stride_k + 1]);
+            __m256d a_reg_0 = _mm256_broadcast_sd(&A[0 * A_stride_k + k]);
+            __m256d a_reg_1 = _mm256_broadcast_sd(&A[1 * A_stride_k + k]);
+            __m256d a_reg_2 = _mm256_broadcast_sd(&A[2 * A_stride_k + k]);
+            __m256d a_reg_3 = _mm256_broadcast_sd(&A[3 * A_stride_k + k]);
 
             c_reg_0 = _mm256_fmadd_pd(a_reg_0, b_reg, c_reg_0);
             c_reg_1 = _mm256_fmadd_pd(a_reg_1, b_reg, c_reg_1);
@@ -74,6 +74,21 @@ namespace block3{
     }
 }
 
+template <typename T>
+inline void packA(const T *dst, const T *A, int M, int K, int tiley=4){
+    // This function is a placeholder for packing A into a contiguous memory layout.
+    // In practice, you would implement this to optimize memory access patterns.
+    // For now, we assume A is already in a suitable format.
+    // You can use std::vector or similar to create a packed version if needed.
+    for (int y = 0; y < M; y+=tiley) {
+        for (int x = 0; x < K; x++) {
+          for (int iy = 0; iy < tiley; iy++) {
+            dst[y*K + x*tiley + iy] = A[(y+iy)*K + x];
+          }
+        }
+    }
+}
+
 template <typename T, int blocky = 32, int blockk = 32>
 inline void cpu_gemm_v3(const T *A, const T *B, T *C,
                           int M, int N, int K)
@@ -83,6 +98,7 @@ inline void cpu_gemm_v3(const T *A, const T *B, T *C,
         C[i] = 0;
     }
 
+    T* packedA = (T*)aligned_alloc(64, sizeof(T) * blocky * blockk);
     for (int by = 0; by < M; by += blocky)
     {
         int my = std::min(blocky, M - by);
@@ -90,10 +106,12 @@ inline void cpu_gemm_v3(const T *A, const T *B, T *C,
         {
             int mk = std::min(blockk, K - bk);
 
+            //TODO: PACC tha A data to contiguous memory
+            packA(packedA, &A[by * K + bk], my, mk, blocky);
             // *** THE FIX IS HERE ***
             // Pass the original K as the A_stride_k parameter.
             block3::inner_kernel<T>(
-                &A[by * K + bk],    // Pointer to start of A block
+                packedA,            // Pointer to start of packed A block
                 &B[bk * N],         // Pointer to start of B block
                 &C[by * N],         // Pointer to start of C block
                 my,                 // M dimension of block
